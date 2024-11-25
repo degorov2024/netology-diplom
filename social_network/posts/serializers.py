@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.fields import SerializerMethodField
 
+from drf_extra_fields.fields import Base64ImageField
 from posts.models import Comment, Post, Like
 
 
@@ -14,6 +15,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True, source='commented_post')
     likes_count = SerializerMethodField()
+    image = Base64ImageField(required=False)
 
     def get_likes_count(self, post):
         likes = post.liked_post.count()
