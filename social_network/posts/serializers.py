@@ -8,8 +8,8 @@ from posts.models import Comment, Post, Like
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ('text', 'created_at',)
-#        fields = (author, text, created_at,)
+        fields = ('id', 'author', 'text', 'created_at',)
+        read_only_fields = ('author','id',)
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -23,5 +23,5 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ('id', 'text', 'image', 'created_at', 'comments','likes_count')
-        # fields = (id, owner, text, image, created_at, comments,'likes_count')
+        fields = ('id', 'owner', 'text', 'image', 'created_at', 'comments','likes_count')
+        read_only_fields = ('id', 'owner',)
