@@ -26,6 +26,7 @@ urlpatterns = [
     path('all_posts/', AllPostView.as_view()),
     path('post/<int:post_id>', PostAPI.as_view()),
     path('post/', PostCreate.as_view()),
+    path('comment/<int:comment_id>', CommentAPI.as_view()),
     path('comment/', CommentAPI.as_view()),
 ]
 

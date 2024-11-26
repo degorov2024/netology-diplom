@@ -4,8 +4,8 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from posts.models import Post, Like
-from posts.serializers import PostSerializer
+from posts.models import Post, Like, Comment
+from posts.serializers import PostSerializer, CommentSerializer, CommentCreateSerializer
 
 import os
 
@@ -24,19 +24,9 @@ class AllPostView(APIView):
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data)
 
-
-class CommentAPI(APIView):
-    """Cоздание и удаление комментариев (по id поста и комментария соответственно)"""
-    permission_classes = [IsAuthenticated]
-    def post(self, request, *args, **kwargs):
-        pass
-
-    def delete(self, request, *args, **kwargs):
-        pass
-
-
 class PostCreate(APIView):
-    """Создание новой публикации"""
+    """Создание новой публикации. Текст и картинка опциональны.
+    В теле запроса application/json, причём изображение в формате Base64. """
     permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
         data=request.data
@@ -63,6 +53,8 @@ class PostAPI(APIView):
         like = (Like.objects.filter(post=post_id) &
                 Like.objects.filter(author=self.request.user)).first()
         post = Post.objects.get(id=post_id)
+        #лайк "переключается" с нективного на активный и наоборот - реализуется
+        #через создание и удаление записи в БД для каждого лайка
         if like:
             like = Like.objects.get(post=post)
             like.delete()
@@ -71,7 +63,7 @@ class PostAPI(APIView):
             Like.objects.create(post=post, author=self.request.user)
             return Response({"message": "Лайк поставлен"})
 
-    #Изменение существующей публикации
+    #Изменение существующей публикации. В запросе JSON, картинка в формате Base64.
     def patch(self, request, post_id):
         try:
             post = Post.objects.get(id=post_id)
@@ -79,9 +71,10 @@ class PostAPI(APIView):
             #проверка на то, является ли пользователь автором поста (403, если нет)
             if post.owner == self.request.user:
                 serializer = PostSerializer(post, data=data)
-                #если нет ошибок - удаление старой картинки с сервера, обновление данных
                 if serializer.is_valid():
-                    delete_image(post)
+                    #если поменялась картинка, то старая удаляется с сервера
+                    if data['image']:
+                        delete_image(post)
                     serializer.save()
                     return Response({"message": "Публикация отредактирована"})
                 else:
@@ -92,13 +85,13 @@ class PostAPI(APIView):
             return Response({"message": "Публикация не найдена"},
                             status=status.HTTP_404_NOT_FOUND)
 
-    #удаление публикации
+    #Удаление публикации
     def delete(self, request, post_id):
         try:
             post = Post.objects.get(id=post_id)
             #проверка на то, является ли пользователь автором поста (403, если нет)
             if post.owner == self.request.user:
-                #если прикреплена картинка, и она сохранена на сервере, то файл удаляется
+                #если к посту прикреплена картинка, то файл удаляется с сервера
                 delete_image(post)
                 post.delete()
                 return Response({"message": "Публикация удалена"})
@@ -106,4 +99,31 @@ class PostAPI(APIView):
                 return Response(status=status.HTTP_403_FORBIDDEN)
         except Post.DoesNotExist:
             return Response({"message": "Публикация не найдена"},
+                            status=status.HTTP_404_NOT_FOUND)
+
+
+class CommentAPI(APIView):
+    """Cоздание и удаление комментариев (по id поста и комментария соответственно)"""
+    permission_classes = [IsAuthenticated]
+
+    #создание комментария авторизованным пользователем (запрос application/json)
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        serializer = CommentCreateSerializer(data=data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(author=self.request.user)
+            return Response({"message": "Комментарий опубликован"})
+
+    #удаление комментария по id комментария (может только автор комментария)
+    def delete(self, request, comment_id, *args, **kwargs):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+            #проверка на то, автор ли комментария текущий пользователь (403, если нет)
+            if comment.author == self.request.user:
+                comment.delete()
+                return Response({"message": "Комментарий удалён"})
+            else:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        except Comment.DoesNotExist:
+            return Response({"message": "Такого комментария не существует"},
                             status=status.HTTP_404_NOT_FOUND)

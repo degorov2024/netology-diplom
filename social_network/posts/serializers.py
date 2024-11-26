@@ -5,13 +5,20 @@ from drf_extra_fields.fields import Base64ImageField
 from posts.models import Comment, Post, Like
 
 
+#Вывод комментариев (не все поля)
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ('id', 'author', 'text', 'created_at',)
-        read_only_fields = ('author','id',)
+        fields = ('author', 'text', 'created_at',)
 
+#Создание комментариев
+class CommentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = '__all__'
+        read_only_fields = ('author','id','created_at')
 
+#Публикации
 class PostSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True, source='commented_post')
     likes_count = SerializerMethodField()
@@ -24,4 +31,4 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ('id', 'owner', 'text', 'image', 'created_at', 'comments','likes_count')
-        read_only_fields = ('id', 'owner',)
+        read_only_fields = ('id', 'owner', 'created_at')
