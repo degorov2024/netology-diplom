@@ -19,13 +19,14 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
-from posts.views import AllPostView, PostAPI, CommentAPI, PostCreate
+from posts.views import AllPostView, PostAPI, CommentAPI, PostCreate, LikeAPI
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('all_posts/', AllPostView.as_view()),
     path('post/<int:post_id>', PostAPI.as_view()),
     path('post/', PostCreate.as_view()),
+    path('like/<int:post_id>', LikeAPI.as_view()),
     path('comment/<int:comment_id>', CommentAPI.as_view()),
     path('comment/', CommentAPI.as_view()),
 ]

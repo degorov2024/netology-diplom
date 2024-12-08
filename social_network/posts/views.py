@@ -3,9 +3,11 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ViewSet
 
 from posts.models import Post, Like, Comment
-from posts.serializers import PostSerializer, CommentSerializer, CommentCreateSerializer
+from posts.serializers import (PostSerializer, CommentSerializer,
+                               CommentCreateSerializer, LikeSerializer)
 
 import os
 
@@ -36,8 +38,7 @@ class PostCreate(APIView):
             return Response({"message": "Публикация создана"})
 
 class PostAPI(APIView):
-    """Просмотр, редактирование и удаление публикаций по id, а также возможность
-    ставить и удалять лайки"""
+    """Просмотр, редактирование и удаление публикаций по id"""
     #GET-запросы работают у всех, остальные же - только у авторизованных пользователей
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -46,22 +47,6 @@ class PostAPI(APIView):
         the_post = get_object_or_404(Post, id=post_id)
         serializer = PostSerializer(instance=the_post, many=False)
         return Response(serializer.data)
-
-    #Лайки
-    def put(self, request, post_id):
-        #получаем объект Like либо None (исходя из того, был ли лайк уже поставлен)
-        like = (Like.objects.filter(post=post_id) &
-                Like.objects.filter(author=self.request.user)).first()
-        post = Post.objects.get(id=post_id)
-        #лайк "переключается" с нективного на активный и наоборот - реализуется
-        #через создание и удаление записи в БД для каждого лайка
-        if like:
-            like = Like.objects.get(post=post)
-            like.delete()
-            return Response({"message": "Лайк удалён"})
-        else:
-            Like.objects.create(post=post, author=self.request.user)
-            return Response({"message": "Лайк поставлен"})
 
     #Изменение существующей публикации. В запросе JSON, картинка в формате Base64.
     def patch(self, request, post_id):
@@ -126,4 +111,30 @@ class CommentAPI(APIView):
                 return Response(status=status.HTTP_403_FORBIDDEN)
         except Comment.DoesNotExist:
             return Response({"message": "Такого комментария не существует"},
+                            status=status.HTTP_404_NOT_FOUND)
+
+
+class LikeAPI(APIView):
+    """Возможность ставить и удалять лайки"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, post_id):
+        #Проверка, был ли поставлен лайк до этого
+        if (Like.objects.filter(post=post_id) &
+            Like.objects.filter(author=self.request.user)).first():
+            return Response({"message": "Лайк уже был поставлен ранее"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        else:
+            serializer = LikeSerializer(data={"post":post_id})
+            if serializer.is_valid(raise_exception=True):
+                serializer.save(author=self.request.user)
+                return Response({"message": "Лайк поставлен"})
+
+    def delete (self, request, post_id):
+        try:
+            like = Like.objects.get(post=post_id, author=self.request.user)
+            like.delete()
+            return Response({"message": "Лайк удалён"})
+        except Like.DoesNotExist:
+            return Response({"message": "Лайк не найден"},
                             status=status.HTTP_404_NOT_FOUND)

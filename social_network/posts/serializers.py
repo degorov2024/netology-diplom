@@ -16,7 +16,14 @@ class CommentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = '__all__'
-        read_only_fields = ('author','id','created_at')
+        read_only_fields = ('author','id','created_at',)
+
+#Лайки
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = '__all__'
+        read_only_fields = ('author',)
 
 #Публикации
 class PostSerializer(serializers.ModelSerializer):
@@ -30,5 +37,5 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ('id', 'owner', 'text', 'image', 'created_at', 'comments','likes_count')
-        read_only_fields = ('id', 'owner', 'created_at')
+        fields = ('id', 'owner', 'text', 'image', 'created_at', 'comments','likes_count',)
+        read_only_fields = ('id', 'owner', 'created_at',)
