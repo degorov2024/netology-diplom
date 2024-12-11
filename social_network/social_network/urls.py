@@ -27,8 +27,8 @@ urlpatterns = [
     path('post/<int:post_id>', PostAPI.as_view()),
     path('post/', PostCreate.as_view()),
     path('like/<int:post_id>', LikeAPI.as_view()),
-    path('comment/<int:comment_id>', CommentAPI.as_view()),
-    path('comment/', CommentAPI.as_view()),
+    path('post/<int:post_id>/comment/', CommentAPI.as_view()),
+    path('post/<int:post_id>/comment/<int:comment_id>', CommentAPI.as_view()),
 ]
 
 if settings.DEBUG:
