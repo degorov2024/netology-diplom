@@ -3,7 +3,6 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import ViewSet
 
 from posts.permissions import IsAuthorOrAuthenticatedOrSafe
 from posts.models import Post, Like, Comment
@@ -59,8 +58,9 @@ class PostAPI(APIView):
             data = request.data
             serializer = PostSerializer(post, data=data)
             if serializer.is_valid():
-                #если поменялась картинка, то старая удаляется с сервера
-                if data['image']:
+                #если поменялась картинка (т.е. в запросе есть ключ 'image'),
+                #то старая удаляется с сервера
+                if 'image' in data:
                     delete_image(post)
                 serializer.save()
                 return Response({"message": "Публикация отредактирована"})
